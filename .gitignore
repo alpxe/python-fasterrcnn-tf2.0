@@ -14,6 +14,7 @@ bin-debug/
 #assets/models/vgg16
 assets/
 
+# 不忽略图片文件
 !assets/train/image/
 
 # Executables
