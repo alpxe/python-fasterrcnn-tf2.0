@@ -2,4 +2,3 @@
 ```
 tensorflow,labelme,pandas,simplejson,PyQt5,opencv-python
 ```
-
