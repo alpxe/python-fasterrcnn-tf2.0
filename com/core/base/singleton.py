@@ -5,6 +5,6 @@ class Singleton(object):
             cls._instance.__single__(*args, **kwargs)
         return cls._instance
 
-    def __single__(self):
+    def __single__(self, *args, **kwargs):
         """ only init once """
         pass
