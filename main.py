@@ -3,6 +3,8 @@ from com.mvc.controller.notice_app import NoticeApp
 
 
 class Main:
+    network = None
+
     def __init__(self):
         self.__initMVC()
         pass

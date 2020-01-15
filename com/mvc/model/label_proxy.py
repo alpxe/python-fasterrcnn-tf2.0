@@ -1,4 +1,4 @@
-from com.mvc.model.model_locator import ModelLocator
+from com.mvc.model.modellocator import ModelLocator
 from puremvc.patterns.proxy import Proxy
 import os
 import glob
