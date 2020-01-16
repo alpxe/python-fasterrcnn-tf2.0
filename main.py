@@ -1,5 +1,6 @@
 from com.mvc.controller.application_facade import ApplicationFacade
 from com.mvc.controller.notice_app import NoticeApp
+import numpy as np
 
 
 class Main:

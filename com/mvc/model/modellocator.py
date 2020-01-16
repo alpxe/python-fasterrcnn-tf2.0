@@ -9,5 +9,5 @@ class ModelLocator:
     train_recored_path = "assets/train/records/train.tfrecord"
 
     # 已经训练好的VGG16模型
-    vgg16_model_path = "assets/models/vgg16/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5"
+    vgg16_model_path = "assets/h5/vgg16/vgg16_weights_tf_dim_ordering_tf_kernels_notop.h5"
     pass

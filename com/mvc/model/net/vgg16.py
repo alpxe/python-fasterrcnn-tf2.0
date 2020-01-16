@@ -91,7 +91,7 @@ def VGG16(vgg16_model_path):
     # x = tf.keras.layers.MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(x)
 
     inputs = img_input
-    model = tf.keras.models.Model(inputs, x, name='vgg16')
+    model = tf.keras.Model(inputs, x, name='vgg16')
 
     model.load_weights(vgg16_model_path)
 

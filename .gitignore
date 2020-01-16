@@ -14,6 +14,14 @@ bin-debug/
 #assets/models/vgg16
 assets/
 
+com/so/build/
+
+com/so/bbox/*.c
+com/so/bbox/*.pyd
+
+com/so/nms/*.c
+com/so/nms/*.pyd
+
 # 不忽略图片文件
 !assets/train/image/
 

@@ -18,8 +18,8 @@ class Anchor(Singleton):
         """
 
         # 特征图宽高
-        feature_width = tf.cast(tf.math.ceil(image_width / self.stride), dtype=tf.int32)
-        feature_height = tf.cast(tf.math.ceil(image_height / self.stride), dtype=tf.int32)
+        feature_width = tf.cast(tf.math.floor(image_width / self.stride), dtype=tf.int32)
+        feature_height = tf.cast(tf.math.floor(image_height / self.stride), dtype=tf.int32)
 
         # 生成网格点坐标矩阵  x=[8 16 32] y=[0.5,1,2] 3x3=9个锚框
         scales, ratios = np.meshgrid(self.scales, self.ratios)
@@ -44,16 +44,3 @@ class Anchor(Singleton):
         boxes = np.concatenate([anchor_center - 0.5 * anchor_size, anchor_center + 0.5 * anchor_size], axis=1)
 
         return boxes
-#
-#     pass
-#
-#
-# if __name__ == "__main__":
-#     import numpy as np
-#
-#     stride = 16  # 下采样
-#     anchor_scales = 2 ** np.arange(3, 6)  # [8 16 32]
-#     anchor_ratios = [0.5, 1, 2]
-#
-#     anchor = Anchor(anchor_scales, anchor_ratios, stride)
-#     anchor.generate_anchors(tf.constant(550), tf.constant(400))
