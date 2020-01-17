@@ -51,6 +51,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, image_width, image_height, anch
     gt_argmax_overlaps = overlaps.argmax(axis=0)
     gt_max_overlaps = overlaps[gt_argmax_overlaps, np.arange(overlaps.shape[1])]
 
+    # 每个标定GT 肯定能找到最贴切的Anchor 用这个值去找更多的Anchor
     gt_argmax_overlaps = np.where(overlaps == gt_max_overlaps)[0]
 
     np.set_printoptions(threshold=np.inf, precision=5, suppress=True)
