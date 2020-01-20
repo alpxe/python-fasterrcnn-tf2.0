@@ -1,13 +1,17 @@
 import tensorflow as tf
 import numpy as np
-
+import numpy.random as npr
 from com.so.bbox.cython_bbox import bbox_overlaps
+
+from com.tool import util
+from com.tool.bbox_transform import bbox_transform
 
 
 def anchor_target_layer(rpn_cls_score, gt_boxes, image_width, image_height, anchors, K):
+    total_anchors = anchors.shape[0]  # 锚框的个数
     print("锚框类别={0}".format(K))
-    print("锚框个数={0}".format(anchors.shape[0]))
-    print("锚点数量={0}".format(anchors.shape[0] / K))
+    print("锚框个数={0}".format(total_anchors))
+    print("锚点数量={0}".format(total_anchors / K))
 
     # map of shape (..., H, W)
     fh, fw = rpn_cls_score.shape[1:3]
@@ -22,6 +26,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, image_width, image_height, anch
         (anchors[:, 2] < image_width + _allowed_border) &  # width
         (anchors[:, 3] < image_height + _allowed_border)  # height
     )[0]
+    print("不越界的锚个数={0}".format(len(inds_inside)))
 
     # 通过索引找到对应的锚框
     anchors = anchors[inds_inside, :]
@@ -54,9 +59,76 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, image_width, image_height, anch
     # 每个标定GT 肯定能找到最贴切的Anchor 用这个值去找更多的Anchor
     gt_argmax_overlaps = np.where(overlaps == gt_max_overlaps)[0]
 
-    np.set_printoptions(threshold=np.inf, precision=5, suppress=True)
-    print(overlaps)
-    print(gt_max_overlaps)
-    print(gt_argmax_overlaps)
+    labels[max_overlaps < 0.3] = 0  # 设置背景
+    labels[gt_argmax_overlaps] = 1  # 设置前景
+    labels[max_overlaps >= 0.7] = 1
 
-    pass
+    # --平衡正负样本数量--
+    total = 256  # 样本总数
+    fg_index = np.where(labels == 1)[0]
+
+    if len(fg_index) > total / 2:  # 正样本数过多
+        disable_index = npr.choice(fg_index, size=(len(fg_index) - total / 2), replace=False)
+        labels[disable_index] = -1
+
+    # 负样本的个数  经过上一步if判断后，labels正样本的个数 只会小于等于128
+    num_bg = 256 - np.sum(labels == 1)
+    print("正样本数目:{0}  负样本数:{1}".format((np.sum(labels == 1)), num_bg))
+
+    # 从labels中获取 负样本的索引
+    bg_index = np.where(labels == 0)[0]
+    if len(bg_index) > num_bg:
+        disable_index = npr.choice(bg_index, size=(len(bg_index) - num_bg), replace=False)
+        labels[disable_index] = -1
+
+    # --平衡正负样本数量-- 完成
+
+    np.set_printoptions(threshold=np.inf, precision=5, suppress=True)
+
+    # 制作绑定框 bbox_targets
+    bbox_inside_weights = np.zeros((len(inds_inside), 4), dtype=np.float32)  # 初始化 内部权重
+    bbox_outside_weights = np.zeros((len(inds_inside), 4), dtype=np.float32)  # 初始化 外部权重
+
+    # gt_boxes   Tensor -> numpy
+    # 通过公式 当前的anchor与其最密切的绑定框之间的差距 计算出之间的差值 Delta Δ
+    deltas = bbox_transform(anchors, gt_boxes.numpy()[argmax_overlaps, :])
+
+    # labels是前景标记  bbox权重设置为(1.0, 1.0, 1.0, 1.0)
+    bbox_inside_weights[labels == 1, :] = np.array((1.0, 1.0, 1.0, 1.0))
+
+    # Give the positive RPN examples weight of p * 1 / {num positives}
+    # and give negatives a weight of (1 - p)
+    # Set to -1.0 to use uniform example weighting
+    if True:  # 使用统一的示例加权
+        num_examples = np.sum(labels >= 0)  # 256
+        positive_weights = np.ones((1, 4)) * 1.0 / num_examples
+        negative_weights = np.ones((1, 4)) * 1.0 / num_examples
+    # else:
+    #     RPN_POSITIVE_WEIGHT = 0.8  # RPN 正权重
+    #     positive_weights = (RPN_POSITIVE_WEIGHT / np.sum(labels == 1))
+    #     negative_weights = ((1.0 - RPN_POSITIVE_WEIGHT) / np.sum(labels == 0))
+    #     pass
+    bbox_outside_weights[labels == 1, :] = positive_weights
+    bbox_outside_weights[labels == 0, :] = negative_weights
+
+    # 子集数据转原始尺寸数据 len=fh*fw*K
+    labels = util.unmap(labels, total_anchors, inds_inside, fill=-1)
+    deltas = util.unmap(deltas, total_anchors, inds_inside, fill=0)
+    bbox_inside_weights = util.unmap(bbox_inside_weights, total_anchors, inds_inside, fill=0)
+    bbox_outside_weights = util.unmap(bbox_outside_weights, total_anchors, inds_inside, fill=0)
+
+    # --reshape--
+    labels = labels.reshape((1, fh, fw, K)).transpose(0, 3, 1, 2)
+    labels = labels.reshape((1, 1, K * fh, fw))  # 不懂为什么要reshape成这个结构?
+    rpn_labels = labels
+
+    deltas = deltas.reshape((1, fh, fw, K * 4))
+    rpn_deltas = deltas
+
+    bbox_inside_weights = bbox_inside_weights.reshape((1, fh, fw, K * 4))
+    rpn_bbox_inside_weights = bbox_inside_weights
+
+    bbox_outside_weights = bbox_outside_weights.reshape((1, fh, fw, K * 4))
+    rpn_bbox_outside_weights = bbox_outside_weights
+
+    return rpn_labels, rpn_deltas, rpn_bbox_inside_weights, rpn_bbox_outside_weights

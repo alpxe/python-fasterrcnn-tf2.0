@@ -9,12 +9,16 @@ import numpy as np
 class NeuralNetworks:
     def __init__(self, dataset):
         print("NeuralNetworks")
+
+        self.num_classes = len(ModelLocator.CLASSES)  # 识别种类
+
         self.vgg16 = VGG16(ModelLocator.vgg16_model_path)
 
-        self.model = faster_rcnn.FasterRCNN()
+        self.model = faster_rcnn.FasterRCNN(self.num_classes)
 
         for step, item in enumerate(dataset):
             self.__training(item)
+            # if step == 1:
             break
 
     def __training(self, data):

@@ -5,7 +5,7 @@ from com.mvc.model.net import rpn
 
 
 class FasterRCNN(tf.keras.Model):
-    def __init__(self):
+    def __init__(self, num_classes):
         super(FasterRCNN, self).__init__()
 
         self.stride = 16  # 下采样
@@ -15,7 +15,8 @@ class FasterRCNN(tf.keras.Model):
         self.rpn_net = rpn.RPN(
             scales=self.anchor_scales,
             ratios=self.anchor_ratios,
-            stride=self.stride
+            stride=self.stride,
+            num_classes=num_classes
         )
 
     def call(self, img, image_width, image_height, gt_boxes):

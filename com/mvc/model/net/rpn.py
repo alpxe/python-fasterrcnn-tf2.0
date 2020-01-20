@@ -1,17 +1,18 @@
 import tensorflow as tf
 
 from com.mvc.view.component.anchor_target import anchor_target_layer
-from com.mvc.view.component.proposal import proposal_layer
+from com.mvc.view.component.proposal import proposal_layer, proposal_target_layer
 from com.tool import anchor, util
 
 
 class RPN(tf.keras.Model):
-    def __init__(self, scales, ratios, stride):
+    def __init__(self, scales, ratios, stride, num_classes):
         super(RPN, self).__init__()
 
         self.anchor_scales = scales  # [8 16 32]
         self.anchor_ratios = ratios  # [0.5, 1, 2]
         self.stride = stride  # 16
+        self.num_classes = num_classes
 
         self.K = len(scales) * len(ratios)  # 3x3=9
 
@@ -40,8 +41,24 @@ class RPN(tf.keras.Model):
         # RPN 分类 预测值 -> 概率 (1,32,36,18) 0-8是正标签 9-18是负标签
         rpn_cls_prob = util.rpn_cls_softmax(rpn_cls_score, 2)  # RPN 分类 概率
 
-        # ROIs 指的是Selective Search的输出   rois=[[0,x1,y1,x2,y2]...] rpn_scores=[[前景得分(大于0.7)]]
+        # ROIs 指的是Selective Search的输出   rois=[[0,x1,y1,x2,y2]...] rpn_scores=[[前景得分(值一般大于0.7)]]
         rois, rpn_scores = proposal_layer(rpn_cls_prob, rpn_bbox_pred, image_width, image_height, anchors, self.K)
+        """
+        2K卷积是标签值(前景+背景) 4K卷积是坐标值Δ  通过非极大值抑制((坐标值Δ+锚框),(标签纸),2000,0.7) 
+        rois = 2000个 of (坐标值Δ+锚框)
+        rpn_scores = 2000个 of 前景值
+        """
 
-        anchor_target_layer(rpn_cls_score, gt_boxes, image_width, image_height, anchors, self.K)
+        rpn_labels, rpn_deltas, rpn_bbox_inside_weights, rpn_bbox_outside_weights = anchor_target_layer(
+            rpn_cls_score, gt_boxes, image_width, image_height, anchors, self.K)
+        """
+        256 个标签 前景+背景 其他为-1
+        rpn_labels = fh x fw x K 个 include 256 个标签
+        rpn_deltas = 锚框detal
+        rpn_bbox_inside_weights =  内部权重(1.0, 1.0, 1.0, 1.0) where(labels == 1)
+        rpn_bbox_outside_weights = 外部权重(1.0 / num_examples) where(labels >= 0)
+        """
+
+        rois = proposal_target_layer(rois, rpn_scores, gt_boxes, self.num_classes)
+
         pass

@@ -1,4 +1,22 @@
 import tensorflow as tf
+import numpy as np
+
+
+def bbox_transform(ex_rois, gt_rois):
+    ex_ctr_x, ex_ctr_y, ex_widths, ex_heights = __port2rect(ex_rois)
+    gt_ctr_x, gt_ctr_y, gt_widths, gt_heights = __port2rect(gt_rois)
+
+    dx = (gt_ctr_x - ex_ctr_x) / ex_widths
+    dy = (gt_ctr_y - ex_ctr_y) / ex_heights
+    dw = np.log(gt_widths / ex_widths)
+    dh = np.log(gt_heights / ex_heights)
+
+    # [[x...],      [[x,y,w,h],
+    #  [y...],       [x,y,w,h],
+    #  [w...],  ==>  [x,y,w,h],
+    #  [h...]]       ......   ]
+    deltas = np.vstack((dx, dy, dw, dh)).transpose()
+    return deltas
 
 
 def bbox_transform_inv(boxes, deltas):
@@ -12,11 +30,7 @@ def bbox_transform_inv(boxes, deltas):
 
     boxes = tf.cast(boxes, deltas.dtype)
 
-    widths = boxes[:, 2] - boxes[:, 0] + 1.0
-    heights = boxes[:, 3] - boxes[:, 1] + 1.0
-
-    ctr_x = boxes[:, 0] + 0.5 * widths
-    ctr_y = boxes[:, 1] + 0.5 * heights
+    ctr_x, ctr_y, widths, heights = __port2rect(boxes)
 
     dx = deltas[:, 0]
     dy = deltas[:, 1]
@@ -34,6 +48,19 @@ def bbox_transform_inv(boxes, deltas):
     pred_boxes3 = tf.add(pred_ctr_y, pred_h * 0.5)
 
     return tf.stack([pred_boxes0, pred_boxes1, pred_boxes2, pred_boxes3], axis=1)
+
+
+def __port2rect(boxes):
+    """
+    左上右下 转 中心点+宽高
+    """
+    widths = boxes[:, 2] - boxes[:, 0] + 1.0
+    heights = boxes[:, 3] - boxes[:, 1] + 1.0
+
+    ctr_x = boxes[:, 0] + 0.5 * widths
+    ctr_y = boxes[:, 1] + 0.5 * heights
+
+    return ctr_x, ctr_y, widths, heights
 
 
 def clip_boxes(boxes, w, h):

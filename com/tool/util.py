@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 
 def rpn_cls_softmax(data, dims):
@@ -33,3 +34,23 @@ def __softmax_layer(data):
     reshaped = tf.reshape(data, [-1, input_shape[-1]])  # (288x36,2) -> (10368, 2)
     score = tf.nn.softmax(reshaped)
     return tf.reshape(score, input_shape)
+
+
+def unmap(data, count, inds, fill=0):
+    """
+    将项目的子集数据 隐射到原始大小数据集
+    :param data: 子集数据
+    :param count: 原始集总数
+    :param inds: 子集数据所在索引
+    :param fill: 填充的数值
+    :return:
+    """
+    if len(data.shape) == 1:  # 如果是一维数组
+        ret = np.empty((count,), dtype=np.float32)
+        ret.fill(fill)
+        ret[inds] = data
+    else:
+        ret = np.empty((count,) + data.shape[1:], dtype=np.float32)
+        ret.fill(fill)
+        ret[inds, :] = data
+    return ret
