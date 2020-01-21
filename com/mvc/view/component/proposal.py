@@ -10,12 +10,12 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, image_width, image_height, ancho
     提取框
     :return:
     """
-    scores = rpn_cls_prob[:, :, :, K:]  # 前景打分概率值
+    scores = rpn_cls_prob[:, :, :, K:]  # 取出前景部分的概率值
     scores = tf.reshape(scores, shape=(-1,))
 
     rpn_bbox_pred = tf.reshape(rpn_bbox_pred, shape=(-1, 4))
 
-    # 预测框     N个锚框 x N个预测detals = N个预测框
+    # 预测框     N个锚框 与 N个预测detals => N个预测框
     proposals = bbox_transform_inv(anchors, rpn_bbox_pred)
     proposals = clip_boxes(proposals, image_width, image_height)  # 修正超出边界的框
 

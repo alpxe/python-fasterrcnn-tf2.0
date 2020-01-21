@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
-from com.tool import anchor
+
+from com.mvc.model.modellocator import ModelLocator
 from com.mvc.model.net import rpn
 
 
@@ -8,9 +9,9 @@ class FasterRCNN(tf.keras.Model):
     def __init__(self, num_classes):
         super(FasterRCNN, self).__init__()
 
-        self.stride = 16  # 下采样
-        self.anchor_scales = 2 ** np.arange(5, 8)  # [8 16 32]
-        self.anchor_ratios = [0.5, 1, 2]
+        self.stride = ModelLocator.stride
+        self.anchor_scales = ModelLocator.anchor_scales
+        self.anchor_ratios = ModelLocator.anchor_ratios
 
         self.rpn_net = rpn.RPN(
             scales=self.anchor_scales,
@@ -20,10 +21,8 @@ class FasterRCNN(tf.keras.Model):
         )
 
     def call(self, img, image_width, image_height, gt_boxes):
-        rois = self.rpn_net(img, image_width, image_height, gt_boxes)
+        return self.rpn_net(img, image_width, image_height, gt_boxes)
 
-        print(rois)
-        pass
         # anchors = anchor.Anchor(
         #     self.anchor_scales, self.anchor_ratios, self.stride
         # ).generate_anchors(image_width, image_height)

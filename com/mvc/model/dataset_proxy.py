@@ -32,6 +32,8 @@ class DatasetProxy(Proxy):
 
         gt_boxes = tf.stack([gt_x1, gt_y1, gt_x2, gt_y2, gt_label], axis=1)
 
+        print(data["filename"])
+        print(gt_boxes)
         return image, image_width, image_height, gt_boxes
 
     def request_data(self, path):

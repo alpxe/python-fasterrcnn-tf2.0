@@ -5,6 +5,7 @@ import numpy as np
 def bbox_transform(ex_rois, gt_rois):
     ex_ctr_x, ex_ctr_y, ex_widths, ex_heights = __port2rect(ex_rois)
     gt_ctr_x, gt_ctr_y, gt_widths, gt_heights = __port2rect(gt_rois)
+    print(gt_widths)
 
     dx = (gt_ctr_x - ex_ctr_x) / ex_widths
     dy = (gt_ctr_y - ex_ctr_y) / ex_heights

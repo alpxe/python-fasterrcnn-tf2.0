@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class ModelLocator:
     # 标签路径
     label_image_path = "assets/train/image/"
@@ -13,4 +16,8 @@ class ModelLocator:
 
     CLASSES = ('__background__',  # 0:背景标记必须有
                'jjy')
+
+    stride = 16  # 下采样
+    anchor_scales = 2 ** np.arange(5, 8)  # [8 16 32]
+    anchor_ratios = [0.1, 1, 2]
     pass

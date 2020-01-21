@@ -5,14 +5,14 @@ import numpy as np
 def rpn_cls_softmax(data, dims):
     input_shape = tf.shape(data)  # [-1,h,w,18]           (1,  32, 36,18)
 
-    data = __reshape_layer(data, dims)  # [-1,9*h,w,2]    (1, 288, 36, 2)
+    data = reshape_layer(data, dims)  # [-1,9*h,w,2]    (1, 288, 36, 2)
     data = __softmax_layer(data)
-    data = __reshape_layer(data, input_shape[-1])  # (1,32,36,18)
+    data = reshape_layer(data, input_shape[-1])  # (1,32,36,18)
     # print(data[:, :, :, 0] + data[:, :, :, 9])
     return data
 
 
-def __reshape_layer(data, num_dim):
+def reshape_layer(data, num_dim):
     """
     [-1,h,w,18] -> [-1,h,w,2*9] -> [-1,h*9,w,2]
     :param data:

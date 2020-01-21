@@ -1,14 +1,13 @@
 from com.mvc.app import App
 from com.mvc.model.modellocator import ModelLocator
 from com.mvc.model.net.vgg16 import VGG16
-from com.tool.anchor import Anchor
 from com.mvc.model.net import faster_rcnn
-import numpy as np
+import tensorflow as tf
 
 
 class NeuralNetworks:
     def __init__(self, dataset):
-        print("NeuralNetworks")
+        print("NeuralNetworks\n")
 
         self.num_classes = len(ModelLocator.CLASSES)  # 识别种类
 
@@ -16,24 +15,31 @@ class NeuralNetworks:
 
         self.model = faster_rcnn.FasterRCNN(self.num_classes)
 
+        # 优化器
+        self.optimizer = tf.optimizers.Adam(1e-4)
+
         for step, item in enumerate(dataset):
-            self.__training(item)
+            loss = self.__training(item)
             # if step == 1:
-            break
+            # break
+            print(loss)
 
     def __training(self, data):
+        # 解析一组数据  图片源  图片宽度 图片高度 GT标框
         image, image_width, image_height, gt_boxes = App().dataset_proxy.analytical(data)
 
+        # 提取图片特征 下采样16
         img = self.vgg16.predict(image)  # (1,32,36,512)
 
-        self.model(img, image_width, image_height, gt_boxes)
+        with tf.GradientTape() as tape:
+            loss = self.model(img, image_width, image_height, gt_boxes)
 
-        # print(x)
-        # self.stride = 16  # 下采样
-        # self.anchor_scales = 2 ** np.arange(3, 6)  # [8 16 32]
-        # self.anchor_ratios = [0.5, 1, 2]
-        #
-        # Anchor(self.anchor_scales, self.anchor_ratios, self.stride)
-        # anchors = Anchor().generate_anchors(image_width, image_height)
-        # print(anchors)
-        pass
+        # 更新训练的变量 trainable_variables
+        trainable_variables = self.model.trainable_variables
+
+        # Compute gradient 梯度计算
+        grad = tape.gradient(loss, trainable_variables)
+
+        self.optimizer.apply_gradients(zip(grad, trainable_variables))
+
+        return loss.numpy()

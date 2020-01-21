@@ -17,4 +17,5 @@ class Main:
 
 
 if __name__ == "__main__":
+    # np.set_printoptions(threshold=np.inf, precision=5, suppress=True)
     Main()
