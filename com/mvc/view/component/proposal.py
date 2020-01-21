@@ -52,15 +52,14 @@ def proposal_target_layer(rois, rpn_scores, gt_boxes, num_classes):
     rois_per_image = BATCH_SIZE / num_images  # 128
     fg_rois_per_image = np.round(FG_FRACTION * rois_per_image)  # 32
 
-    __sample_rois(
+    return __sample_rois(
         all_rois=all_rois,
         all_scores=all_scores,
         gt_boxes=gt_boxes,
-        fg_rois_per_image=fg_rois_per_image,
-        rois_per_image=rois_per_image,
+        fg_rois_per_image=fg_rois_per_image,  # 32
+        rois_per_image=rois_per_image,  # 128
         num_classes=num_classes
     )
-    pass
 
 
 def __sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_image, num_classes):
@@ -74,10 +73,10 @@ def __sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_im
 
     # 2000提取框 - 最优标定GT :  从标定GT中找到与该提取框IoU最大的值
     gt_assignment = overlaps.argmax(axis=1)  # 索引
-    max_overlaps = overlaps.max(axis=1)  # 值
+    max_overlaps = overlaps.max(axis=1)  # 值 2000个提取框 与 GT标值框的 IoU
 
     labels = gt_boxes.numpy()[gt_assignment, 4]  # 真实标签 ==>2000个1
-    print("IoU 重合率 大于 0.5的 个数 = {0}".format(np.where(max_overlaps > 0.5)[0].size))
+    print("IoU 重合率 大于 0的 个数 = {0}".format(np.where(max_overlaps > 0)[0].size))
 
     FG_THRESH = 0.5  # 前景阈值
     BG_THRESH_HI = 0.5  # 背景 区间
@@ -105,20 +104,22 @@ def __sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_im
 
     print("proposal:")
     print("正样本数目:{0}  负样本数:{1}".format(fg_index.size, bg_index.size))
-    keep_index = np.append(fg_index, bg_index)  # 索引
-    labels = labels[keep_index]
+    keep_index = np.append(fg_index, bg_index)  # 索引 128个
+
+    labels = labels[keep_index]  # 通过索引 取出128个值
     labels[int(fg_rois_per_image):] = 0  # 因为后面拼接的是背景 所以可以明确的将值设置为0
 
-    rois = all_rois[keep_index]  # 最优的前后背景 提取框
-    roi_scores = all_scores[keep_index]
+    # 2000个 -> 128个
+    rois = all_rois[keep_index]  # 通过索引 取出框 128个
+    roi_scores = all_scores[keep_index]  # 通过索引 取出值 128个
 
-    # [标签,Δx,Δy,Δw,Δh]
+    # [标签,Δx,Δy,Δw,Δh] 128个
     bbox_deltas_data = _compute_targets(rois[:, 1:5], gt_boxes.numpy()[gt_assignment[keep_index], :4], labels)
     bbox_deltas, bbox_inside_weights = _get_bbox_regression_labels(bbox_deltas_data, num_classes)
 
     """
         Returns:
-         labels:  [1,2,3,...0,0,0,0] IoU最优的框 阈值大于设定值(0.5) 绑定框的labels
+         labels:  标签
          rois:  前后背景 提取框
          rois_scores:  对应的分数
          bbox_targets:   前景框数个 x [0,0,0,0  ,0,0,0,0  ,0,0,0,0  ,...] 4个一组 num_class几个就几组 对应的类别存在对应类别的位置

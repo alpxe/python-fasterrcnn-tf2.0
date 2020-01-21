@@ -20,7 +20,9 @@ class FasterRCNN(tf.keras.Model):
         )
 
     def call(self, img, image_width, image_height, gt_boxes):
-        self.rpn_net(img, image_width, image_height, gt_boxes)
+        rois = self.rpn_net(img, image_width, image_height, gt_boxes)
+
+        print(rois)
         pass
         # anchors = anchor.Anchor(
         #     self.anchor_scales, self.anchor_ratios, self.stride

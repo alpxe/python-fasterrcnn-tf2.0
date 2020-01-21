@@ -59,6 +59,17 @@ class RPN(tf.keras.Model):
         rpn_bbox_outside_weights = 外部权重(1.0 / num_examples) where(labels >= 0)
         """
 
-        rois = proposal_target_layer(rois, rpn_scores, gt_boxes, self.num_classes)
+        labels, rois, roi_scores, bbox_deltas, bbox_inside_weights = proposal_target_layer(
+            rois, rpn_scores, gt_boxes, self.num_classes)
+        # labels, rois, roi_scores, bbox_deltas, bbox_inside_weights = proposal_target_layer(
+        #     rois, rpn_scores, gt_boxes, self.num_classes)
+        """
+        2000 ->128 
+        labels 具体标签
+        rois (坐标值Δ+锚框)
+        roi_scores (前景值)
+        bbox_deltas 4*num_classes宽度的 前景deltas值
+        bbox_inside_weights 4*num_classes宽度的 权重值 1
+        """
 
-        pass
+        return rois  # (坐标值Δ+锚框)
